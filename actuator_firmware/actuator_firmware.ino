@@ -81,6 +81,7 @@ void callback(char* topic, byte* payload, unsigned int length)
   grafX = map(co2ppm, 200, 1023, 0, 127);       //map value to screen width
   display.fillRect(0, 52, grafX, 10, SSD1306_WHITE);  //print graph 400min 1000max
   display.display();
+  display.clearDisplay();
 }
 
 void setup()
