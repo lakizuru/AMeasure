@@ -14,24 +14,57 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 #define co2Zero     55                        //calibrated CO2 0 level
 #define OLED_RESET   4                        //OLED reset on lin 4
 
-const char *WIFI_SSID = "YOUR WIFI NETWORK NAME";
-const char *WIFI_PASSWORD = "YOUR WIFI PASSWORD";
-
-const char* broker = "test.mosquitto.org"; //IP address of broker
-const int port = 1883;
-const char *TOPIC = "AMeasure/sensor1";
+const char* ssid = "Semasinghe";
+const char* password = "4500322*";
+const char* mqtt_server = "test.mosquitto.org";
 
 int co2raw = 0;                               //int for raw value of co2
 int co2ppm = 0;
 int grafX = 0;
 
-WiFiClient client;
-PubSubClient mqttClient(client);
+WiFiClient espClient;
+PubSubClient client(espClient);
+unsigned long lastMsg = 0;
+#define MSG_BUFFER_SIZE  (50)
+char msg[MSG_BUFFER_SIZE];
+int value = 0;
+
+void setup_wifi() {
+
+  delay(10);
+  // We start by connecting to a WiFi network
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  randomSeed(micros());
+
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+}
 
 void callback(char* topic, byte* payload, unsigned int length)
 {
-  payload[length] = '\0';
-  co2raw = String((char*) payload).toInt();
+  Serial.println("Publish received.");
+  Serial.print("  topic: ");
+  Serial.println(topic);
+  String messageTemp;
+  for (int i = 0; i < length; i++) {
+    messageTemp += (char)payload[i];
+  }
+  //Serial.println(messageTemp);
+  co2raw = messageTemp.toInt();
+  Serial.println(co2raw);
   co2ppm = co2raw - co2Zero;                 //get calculated ppm
   display.setTextSize(2);                     //set text sizez
   display.setTextColor(WHITE);                //set text color
@@ -54,17 +87,10 @@ void setup()
 {
   Serial.begin(9600);
 
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
+  setup_wifi();
 
-  Serial.println("Connected to Wi-Fi");
-
-  mqttClient.setServer(broker, port);
-  mqttClient.setCallback(callback);
-  mqttClient.subscribe("AMeasure/sensor1");
+  client.setServer(mqtt_server, 1883);
+  client.setCallback(callback);
 
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
     Serial.println(F("SSD1306 allocation failed"));
@@ -72,24 +98,23 @@ void setup()
   }
   delay(2000);
   display.clearDisplay();
-  display.setTextColor(WHITE);
-  testscrolltext();
-  display.clearDisplay();
 }
 
 void reconnect() {
   // Loop until we're reconnected
-  while (!mqttClient.connected()) {
+  while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
     // Create a random client ID
     String clientId = "ESP8266Client-";
     clientId += String(random(0xffff), HEX);
     // Attempt to connect
-    if (mqttClient.connect(clientId.c_str())) {
+    if (client.connect(clientId.c_str())) {
       Serial.println("connected");
+      // ... and resubscribe
+      client.subscribe("AMeasure/sensor1");
     } else {
       Serial.print("failed, rc=");
-      Serial.print(mqttClient.state());
+      Serial.print(client.state());
       Serial.println(" try again in 5 seconds");
       // Wait 5 seconds before retrying
       delay(5000);
@@ -97,13 +122,12 @@ void reconnect() {
   }
 }
 
-void loop()
-{
+void loop() {
 
-  if (!mqttClient.connected()) {
+  if (!client.connected()) {
     reconnect();
   }
-  mqttClient.loop();
+  client.loop();
 }
 
 void testscrolltext(void) {
