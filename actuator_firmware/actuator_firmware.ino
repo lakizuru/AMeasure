@@ -17,8 +17,8 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 const char *WIFI_SSID = "YOUR WIFI NETWORK NAME";
 const char *WIFI_PASSWORD = "YOUR WIFI PASSWORD";
 
-const char *MQTT_HOST = "test.mosquitto.org";
-const int MQTT_PORT = 1883;
+const char* broker = "test.mosquitto.org"; //IP address of broker
+const int port = 1883;
 const char *TOPIC = "AMeasure/sensor1";
 
 int co2raw = 0;                               //int for raw value of co2
@@ -62,9 +62,9 @@ void setup()
 
   Serial.println("Connected to Wi-Fi");
 
-  mqttClient.setServer(MQTT_HOST, MQTT_PORT);
+  mqttClient.setServer(broker, port);
   mqttClient.setCallback(callback);
-  mqttClient.subscribe(TOPIC);
+  mqttClient.subscribe("AMeasure/sensor1");
 
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
     Serial.println(F("SSD1306 allocation failed"));
@@ -118,36 +118,4 @@ void testscrolltext(void) {
   display.clearDisplay();
   delay(3000);
 
-}
-
-void WarmingSensor(void) {
-  display.clearDisplay();
-  display.setTextColor(SSD1306_WHITE);
-  int16_t i = 0;
-  display.drawRect(i, i, display.width(), display.height(), SSD1306_WHITE);
-  display.setTextSize(2); // Draw 2X-scale text
-  display.setCursor(15, 27);
-  display.println(F("CO2 Meter"));
-  display.display(); // Show initial text
-  display.clearDisplay();
-  delay(3000);
-  display.display();
-  for (int i = 0; i <= 100; i++)
-  {
-    display.clearDisplay();
-    display.setTextColor(SSD1306_WHITE);
-    int16_t j = 0;
-    display.drawRect(j, j, display.width(), display.height(), SSD1306_WHITE);
-    display.setCursor(20, 27);
-    display.setTextSize(1.5);
-    display.println(F("Warming Sensor:"));
-    display.setTextSize(1.5);
-    display.setCursor(20, 37);
-    if (i < 100) display.print("");
-    if (i < 10) display.print("");
-    display.print(i);
-    display.print("%");
-    display.display();
-    delay(1000);
-  }
 }
