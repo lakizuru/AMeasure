@@ -32,9 +32,22 @@ void callback(char* topic, byte* payload, unsigned int length)
 {
   payload[length] = '\0';
   co2raw = String((char*) payload).toInt();
-
-  Serial.println(topic);
-  Serial.println(co2raw);
+  co2ppm = co2raw - co2Zero;                 //get calculated ppm
+  display.setTextSize(2);                     //set text sizez
+  display.setTextColor(WHITE);                //set text color
+  display.setCursor(0, 0);                    //set cursor
+  display.println("CO2 Level");               //print title
+  display.println(" ");                       //skip a line
+  display.print(co2ppm);
+  display.print("  PPM");
+  Serial.print("AirQuality=");
+  //display.setCursor(20,27);
+  Serial.print(co2ppm);  // prints the value read
+  Serial.println(" PPM");
+  delay(50);
+  grafX = map(co2ppm, 200, 1023, 0, 127);       //map value to screen width
+  display.fillRect(0, 52, grafX, 10, SSD1306_WHITE);  //print graph 400min 1000max
+  display.display();
 }
 
 void setup()
@@ -61,7 +74,6 @@ void setup()
   display.clearDisplay();
   display.setTextColor(WHITE);
   testscrolltext();
-  WarmingSensor();
   display.clearDisplay();
 }
 
@@ -92,22 +104,6 @@ void loop()
     reconnect();
   }
   mqttClient.loop();
-  co2ppm = co2raw - co2Zero;                 //get calculated ppm
-  display.setTextSize(2);                     //set text sizez
-  display.setTextColor(WHITE);                //set text color
-  display.setCursor(0, 0);                    //set cursor
-  display.println("CO2 Level");               //print title
-  display.println(" ");                       //skip a line
-  display.print(co2ppm);
-  display.print("  PPM");
-  Serial.print("AirQuality=");
-  //display.setCursor(20,27);
-  Serial.print(co2ppm);  // prints the value read
-  Serial.println(" PPM");
-  delay(50);
-  grafX = map(co2ppm, 200, 1023, 0, 127);       //map value to screen width
-  display.fillRect(0, 52, grafX, 10, SSD1306_WHITE);  //print graph 400min 1000max
-  display.display();
 }
 
 void testscrolltext(void) {
@@ -118,7 +114,6 @@ void testscrolltext(void) {
   display.setTextSize(1.5); // Draw 2X-scale text
   display.setTextColor(SSD1306_WHITE);
   display.setCursor(20, 27);
-  display.println(F("CoolElektrodude"));
   display.display();      // Show initial text
   display.clearDisplay();
   delay(3000);
