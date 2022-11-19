@@ -62,6 +62,7 @@ void setup()
   display.setTextColor(WHITE);
   testscrolltext();
   WarmingSensor();
+  display.clearDisplay();
 }
 
 void reconnect() {
