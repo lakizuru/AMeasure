@@ -20,6 +20,13 @@
 
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
+#include <Wire.h>
+#include <Adafruit_Sensor.h>
+#include <DHT.h>
+
+#define anInput     A0                        //analog feed from MQ135
+#define co2Zero     55                        //calibrated CO2 0 level
+#define led          9                        //led on pin 9
 
 // Update these with values suitable for your network.
 
@@ -94,13 +101,34 @@ void loop() {
   }
   client.loop();
 
-  unsigned long now = millis();
-  if (now - lastMsg > 1000) {
-    lastMsg = now;
-    ++value;
-    snprintf (msg, MSG_BUFFER_SIZE, "%d", value);
-    Serial.print("Publish message: ");
-    Serial.println(msg);
-    client.publish("AMeasure/sensor1", msg);
+  int co2now[10];                               //int array for co2 readings
+  int co2raw = 0;                               //int for raw value of co2
+  int co2ppm = 0;                               //int for calculated ppm
+  int co2comp = 0;
+  int zzz = 0;                                  //int for averaging
+
+  for (int x = 0; x < 10; x++) //samplpe co2 10x over 2 seconds
+  {
+    co2now[x] = analogRead(A0);
+    delay(200);
   }
+
+  for (int x = 0; x < 10; x++) //add samples together
+  {
+    zzz = zzz + co2now[x];
+  }
+
+  co2raw = zzz / 10;                          //divide samples by 10
+  co2ppm = co2raw - co2Zero;                 //get calculated ppm
+
+  Serial.print("AirQuality=");
+  //display.setCursor(20,27);
+  Serial.print(co2ppm);  // prints the value read
+  Serial.println(" PPM");
+  delay(50);
+
+  snprintf (msg, MSG_BUFFER_SIZE, "%d", co2ppm);
+  Serial.print("Publish message: ");
+  Serial.println(msg);
+  client.publish("AMeasure/sensor1", msg);
 }
